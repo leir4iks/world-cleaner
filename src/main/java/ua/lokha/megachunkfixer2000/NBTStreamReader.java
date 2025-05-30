@@ -65,8 +65,17 @@ public class NBTStreamReader {
         case 9: return readList(in);
         case 10: return readCompound(in);
         case 11: return readIntArray(in);
-        default: throw new IOException("Invalid NBT tag type (1-10): " + type);
+        case 12: return readLongArray(in);
+        default: throw new IOException("Invalid NBT tag type (1-12): " + type);
         }
+    }
+
+
+    private static long[] readLongArray(DataInput in) throws IOException {
+        long[] data = new long[ in.readInt() ];
+        for (int i = 0; i < data.length; i++)
+            data[i] = in.readLong();
+        return data;
     }
 
     private static int[] readIntArray(DataInput in) throws IOException {
