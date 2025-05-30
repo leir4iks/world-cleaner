@@ -80,16 +80,33 @@ public class CleanThread extends Thread {
                             checkTotal++;
                             try (DataInputStream inputStream = regionFile.getChunkDataInputStream(chunkOffX, chunkOffZ)) {
                                 Map<String, Object> read = NBTStreamReader.read(inputStream, false);
-                                Map level = (Map) read.get("Level");
-                                if (level == null) {
-                                    main.getLogger().severe("В чанке " + file + " x=" + chunkOffX + " z=" + chunkOffZ + " нет тега Level");
-                                    continue;
+                                
+                                // Поддержка старого и нового формата чанков
+                                Map level;
+                                Number ticks;
+
+                                // Проверяем формат чанка
+                                Map levelData = (Map) read.get("Level");
+                                if (levelData != null) {
+                                    // Старый формат (до 1.17) - данные в теге "Level"
+                                    level = levelData;
+                                    ticks = (Number) level.get("InhabitedTime");
+                                } else {
+                                    // Новый формат (1.17+) - данные в корне
+                                    level = read;
+                                    ticks = (Number) level.get("InhabitedTime");
+                                    
+                                    // В новом формате может быть "inhabited_time" вместо "InhabitedTime"
+                                    if (ticks == null) {
+                                        ticks = (Number) level.get("inhabited_time");
+                                    }
                                 }
-                                Number ticks = (Number) level.get("InhabitedTime");
+
                                 if (ticks == null) {
-                                    main.getLogger().severe("В чанке " + file + " x=" + chunkOffX + " z=" + chunkOffZ + " нет тега InhabitedTime");
+                                    main.getLogger().severe("В чанке " + file + " x=" + chunkOffX + " z=" + chunkOffZ + " нет тега InhabitedTime/inhabited_time");
                                     continue;
                                 }
+                                
                                 int chunkX = (regionX << 5) + chunkOffX;
                                 int chunkZ = (regionZ << 5) + chunkOffZ;
 
@@ -154,35 +171,3 @@ public class CleanThread extends Thread {
         return checkTotal;
     }
 }
-
- /* Дебаг визуализация
-            int size = chunks.stream()
-                    .mapToInt(value -> Math.max(Math.abs(value.getChunkX()), Math.abs(value.getChunkZ())))
-                    .max().orElse(0);
-
-            long maxTime = chunks.stream()
-                    .mapToLong(ChunkInfo::getTime)
-                    .max().orElse(0);
-
-            size += 10;
-            size *= 2;
-
-            BufferedImage image = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
-            for(int x = 0; x < size; x++){
-                for(int y = 0; y < size; y++){
-                    image.setRGB(x, y, Color.WHITE.getRGB());
-                }
-            }
-
-            for(ChunkInfo chunk : chunks){
-                int x = (size / 2) + chunk.getChunkX();
-                int y = (size / 2) + chunk.getChunkZ();
-                int gradient = 255 - (int) (((double) chunk.getTime() / maxTime) * 255);
-                image.setRGB(x, y, new Color(255, gradient, gradient).getRGB());
-            }
-
-            try {
-                ImageIO.write(image, "png", new File(worldName + "-out.png"));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }*/
