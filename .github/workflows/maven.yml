@@ -21,7 +21,7 @@ jobs:
         distribution: 'temurin'
         
     - name: Cache Maven dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -34,19 +34,16 @@ jobs:
       run: mvn clean compile package -DskipTests
     
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: WorldCleaner-jar
         path: TestServer/plugins/WorldCleaner.jar
         if-no-files-found: error
     
-    - name: Upload to releases (on tag)
+    - name: Create Release (on tag)
       if: startsWith(github.ref, 'refs/tags/')
-      uses: actions/upload-release-asset@v1
+      uses: softprops/action-gh-release@v2
+      with:
+        files: TestServer/plugins/WorldCleaner.jar
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: TestServer/plugins/WorldCleaner.jar
-        asset_name: WorldCleaner.jar
-        asset_content_type: application/java-archive
